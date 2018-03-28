@@ -23,12 +23,13 @@ class Report extends Component {
               <tbody>
                 {
                   this.props.data.orders.edges.map(({ node: order }) => {
+                    console.log(order)
                     return (
                       <tr>
-                        <th scope='row'>1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
+                        <th scope='row'>{ order.id }</th>
+                        <td>{ order.willcall }</td>
+                        <td>${ (order.amount / 100).toFixed(2) }</td>
+                        <td>${ (order.taxes / 100).toFixed(2) }</td>
                       </tr>
                     )
                   })
@@ -47,6 +48,6 @@ Report.propTypes = {
 }
 
 export default graphql(gql`{
-  orders { edges { node { id } } }
+  orders { edges { node { id willcall amount taxes } } }
 }`
 )(Report)
