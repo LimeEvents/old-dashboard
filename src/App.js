@@ -1,21 +1,32 @@
 import React, { Component } from 'react'
+import { BrowserRouter as Router, Route } from 'react-router-dom'
+import { Container, Row, Col } from 'reactstrap'
+
+import EventEdit from './views/EventEdit'
+import EventList from './views/EventList'
 import Report from './views/Report'
-import logo from './logo.svg'
-import './App.css'
+
+import MainNavigation from './components/MainNavigation'
 
 class App extends Component {
   render () {
     return (
-      <div className='App'>
-        <header className='App-header'>
-          <img src={logo} className='App-logo' alt='logo' />
-          <h1 className='App-title'>Welcome to React</h1>
-        </header>
-        <p className='App-intro'>
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
-        <Report />
-      </div>
+      <Router>
+        <div>
+          <Container>
+            <Row>
+              <Col>
+                <MainNavigation />
+              </Col>
+            </Row>
+          </Container>
+          <Route path='/' exact component={EventList} />
+          <Route path='/reporting' component={Report} />
+          <Route path='/events/:eventId/reporting' component={Report} />
+          <Route path='/events/:eventId' component={EventEdit} />
+          <Route path='/locations/:locationId/reporting' component={Report} />
+        </div>
+      </Router>
     )
   }
 }
