@@ -28,7 +28,7 @@ const EVENT_LIST = gql`
     }
     locationId
     externalIds
-    start(format: "M/D h:mma")
+    start(format: "ddd, MMM Do, h:mma")
     url
     location {
       name

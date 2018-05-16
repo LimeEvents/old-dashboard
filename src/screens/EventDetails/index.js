@@ -16,7 +16,7 @@ class EventDetails extends Component {
       <Container>
         <Row>
           <Col sm={2} className='d-flex flex-column align-items-center'>
-            <img src={this.props.data.event.image} style={{ width: '100%' }} alt={this.props.data.event.name}/>
+            <img src={this.props.data.event.image} style={{ width: '100%' }} alt={this.props.data.event.name} />
             <Button block tag={Link} to={`/events/${this.props.data.event.id}/edit`}>Edit Event</Button>
           </Col>
           <Col>
@@ -46,7 +46,7 @@ const EVENT_DETAILS = gql`
       price
       caption
       description
-      start(format: "M/D/YY h:mma")
+      start(format: "Do M/D/YY h:mma")
       name
     }
   }

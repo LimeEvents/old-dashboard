@@ -1,6 +1,7 @@
 import uuid from 'uuid/v4'
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
+import { Link } from 'react-router-dom'
 import { graphql } from 'react-apollo'
 import gql from 'graphql-tag'
 import { compose, withHandlers } from 'recompose'
@@ -16,7 +17,7 @@ const EventEditFragment = gql`
     start
     notes
     name
-    image
+    image(size: 150)
     caption
     description
     locationId
@@ -198,7 +199,8 @@ class EventEdit extends Component {
         </Row>
         <Row>
           <Col className='d-flex justify-content-end'>
-            <Button onClick={() => this.props.updateEvent(this.state)}>Save event</Button>
+            <Button tag={Link} size='lg' color='default' to='/'>Cancel</Button>
+            <Button size='lg' color='primary' onClick={() => this.props.updateEvent(this.state)}>Save event</Button>
           </Col>
         </Row>
       </Container>

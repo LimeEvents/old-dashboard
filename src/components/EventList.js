@@ -13,9 +13,16 @@ const EventList = ({ events, history }) => {
               {
                 events.map((event) => {
                   return (
-                    <tr onClick={() => history.push(`/events/${event.id}`)} key={event.id} button component={Link} to={`/events/${event.id}`}>
+                    <tr
+                      onClick={() => history.push(`/events/${event.id}`)}
+                      key={event.id}
+                      button
+                      component={Link}
+                      to={`/events/${event.id}`}
+                    >
                       <td><img src={event.image} alt={event.name} /></td>
                       <td>{event.name}</td>
+                      <td>{event.location.name}</td>
                       <td>{event.start}</td>
                       <td>
                         {event.inventory.sold} / {event.inventory.capacity}
