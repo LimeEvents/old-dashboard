@@ -19,6 +19,7 @@ const EventEditFragment = gql`
     name
     image(size: 150)
     caption
+    url
     description
     locationId
     contentRating
@@ -72,7 +73,8 @@ class EventEdit extends Component {
       start: null,
       locationId: null,
       contentRating: null,
-      minimumAge: null
+      minimumAge: null,
+      url: null
     }
 
     this.onChange = this.onChange.bind(this)
@@ -195,6 +197,14 @@ class EventEdit extends Component {
                 </FormGroup>
               </Col>
             </Row>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <FormGroup>
+              <Label for='start'>Ticket URL</Label>
+              <Input type='text' name='url' onChange={this.onChange('url')} value={this.state.url || `https://www.wiseguyscomedy.com/tickets/${this.state.id}`} />
+            </FormGroup>
           </Col>
         </Row>
         <Row>
