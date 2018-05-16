@@ -235,6 +235,7 @@ export default compose(
           caption: event.caption,
           description: event.description,
           slug: event.slug,
+          url: event.url,
           image: event.image,
           video: event.video,
           acceptDiscounts: event.acceptDiscounts,
