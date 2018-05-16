@@ -46,7 +46,7 @@ class EventList extends Component {
                     return (
                       <tr>
                         <td><img src={event.image} style={{ maxHeight: '50px' }} alt={event.name} /></td>
-                        <td>{event.performers.edges.map(({ node: performer }) => performer.name).join('\n')}</td>
+                        <td>{event.name}</td>
                         <td>
                           <ButtonGroup>
                             <Button

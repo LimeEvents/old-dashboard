@@ -3,24 +3,32 @@ import PropTypes from 'prop-types'
 import currencyFormatter from 'currency-formatter'
 
 class Currency extends Component {
+  get value () {
+    return Math.abs(this.props.value)
+  }
+  get isNegative () {
+    return this.props.value < 0
+  }
   get symbol () {
     return currencyFormatter.findCurrency('USD').symbol
   }
   get units () {
-    return currencyFormatter.format(this.props.value / 100, { code: 'USD' }).replace(this.symbol, '').split(this.decimal).shift()
+    return currencyFormatter.format(this.value / 100, { code: 'USD' }).replace(this.symbol, '').split(this.decimal).shift()
   }
   get decimal () {
     return currencyFormatter.findCurrency('USD').decimalSeparator
   }
   get cents () {
-    return currencyFormatter.format(this.props.value / 100, { code: 'USD' }).split(this.decimal).pop()
+    return currencyFormatter.format(this.value / 100, { code: 'USD' }).split(this.decimal).pop()
   }
   render () {
     return (
       <span style={{ ...styles.subtotal, ...this.props.style }}>
-        <span style={styles.cents}>{this.symbol}</span>
+        { this.isNegative && <span>(</span> }
+        { this.props.flat ? this.symbol : <span style={styles.cents}>{this.symbol}</span> }
         <span>{this.units}</span>
-        <span style={styles.cents}>{this.decimal}{this.cents}</span>
+        { this.props.flat ? this.decimal + this.cents : <span style={styles.cents}>{this.decimal}{this.cents}</span> }
+        { this.isNegative && <span>)</span> }
       </span>
     )
   }
@@ -28,11 +36,13 @@ class Currency extends Component {
 
 Currency.propTypes = {
   value: PropTypes.number.isRequired,
-  style: PropTypes.object
+  style: PropTypes.object,
+  flat: PropTypes.boolean
 }
 
 Currency.defaultProps = {
-  value: 0
+  value: 0,
+  flat: false
 }
 
 export default Currency
@@ -44,6 +54,5 @@ const styles = {
     lineHeight: '1.6em'
   },
   subtotal: {
-    fontSize: '24px'
   }
 }

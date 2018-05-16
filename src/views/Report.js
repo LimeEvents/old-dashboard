@@ -9,26 +9,15 @@ import Currency from '../components/Currency'
 
 import Errors from '../components/Errors'
 
-const query = gql`query Report($filter: OrderFilter, $eventId: ID, $locationId: ID) {
+const query = gql`query Report($filter: OrderFilter, $locationId: ID, $eventId: ID) {
   events {
     edges {
       node {
         id
-        performers {
-          edges {
-            node {
-              name
-            }
-          }
-        }
+        name
+        image
       }
     }
-  }
-  orderStatistics(startDate: 0, endDate: 1000000000, eventId: $eventId, locationId: $locationId) {
-    revenue
-    taxes
-    fees
-    refundedAmount
   }
   locations {
     edges {
@@ -38,24 +27,23 @@ const query = gql`query Report($filter: OrderFilter, $eventId: ID, $locationId: 
       }
     }
   }
+  salesTax: orderMetric(filter: { aggregate: salesTax, eventId: $eventId, locationId: $locationId }) { value }
+  amountPaid: orderMetric(filter: { aggregate: amountPaid, eventId: $eventId, locationId: $locationId }) { value }
+  amountRefunded: orderMetric(filter: { aggregate: amountRefunded, eventId: $eventId, locationId: $locationId }) { value }
   orders(filter: $filter) {
     edges {
       node {
         id
         willcall
-        amount
-        taxes
+        amountPaid
+        salesTax
         created
-        refunded
+        amountRefunded
         event {
+          id
+          name
+          image
           start
-          performers {
-            edges {
-              node {
-                name
-              }
-            }
-          }
         }
       }
     }
@@ -108,7 +96,7 @@ class Report extends Component {
               <option>-- Select Event --</option>
               {
                 !this.props.data.loading && this.props.data.events.edges.map(({ node: event }) => {
-                  return <option value={event.id}>{ event.performers.edges.map(({ node: performer }) => performer.name).join(', ') }</option>
+                  return <option value={event.id}>{ event.name }</option>
                 })
               }
             </Input>
@@ -127,19 +115,19 @@ class Report extends Component {
         <Row style={{ marginBottom: '30px', marginTop: '30px' }}>
           <Col style={{ textAlign: 'center' }}>
             <Button block size='lg' color='secondary'>Taxes</Button>
-            { !this.props.data.loading && <Currency value={this.props.data.orderStatistics.taxes} /> }
+            { !this.props.data.loading && <Currency value={this.props.data.salesTax} /> }
           </Col>
           <Col style={{ textAlign: 'center' }}>
             <Button block size='lg' color='danger'>Refunded</Button>
-            { !this.props.data.loading && <Currency value={this.props.data.orderStatistics.refundedAmount} /> }
+            { !this.props.data.loading && <Currency value={this.props.data.refundedAmount} /> }
           </Col>
           <Col style={{ textAlign: 'center' }}>
             <Button block size='lg' color='warning'>Fees</Button>
-            { !this.props.data.loading && <Currency value={this.props.data.orderStatistics.fees} /> }
+            { !this.props.data.loading && <Currency value={this.props.data.fees} /> }
           </Col>
           <Col style={{ textAlign: 'center' }}>
             <Button block size='lg' color='success'>Revenue</Button>
-            { !this.props.data.loading && <Currency value={this.props.data.orderStatistics.revenue} /> }
+            { !this.props.data.loading && <Currency value={this.props.data.revenue} /> }
           </Col>
         </Row>
         <Row>
@@ -161,12 +149,12 @@ class Report extends Component {
                     return (
                       <tr key={order.id}>
                         <td>
-                          <div>{ order.event.performers.edges[0].node.name }</div>
+                          <div>{ order.event.name }</div>
                           <div>{ formatDate(order.event.start) }</div>
                         </td>
                         <td>{ order.willcall.slice(0, 2).join(', ') }</td>
-                        <td>${ (order.amount / 100).toFixed(2) }</td>
-                        <td>${ (order.taxes / 100).toFixed(2) }</td>
+                        <td>${ (order.amountPaid / 100).toFixed(2) }</td>
+                        <td>${ (order.salesTax / 100).toFixed(2) }</td>
                         <td>{ formatDate(order.created) }</td>
                         <td>
                           <ButtonGroup>

@@ -51,8 +51,8 @@ class EventList extends Component {
                   !this.props.data.loading && this.props.data.events.edges.map(({ node: event }) => {
                     return (
                       <tr>
-                        <td><img src={event.performers.edges[0].node.images[0]} /></td>
-                        <td>{event.performers.edges.map(({ node: performer }) => performer.name).join('\n')}</td>
+                        <td><img src={event.image} /></td>
+                        <td>{event.name}</td>
                         <td>
                           <ButtonGroup>
                             <Button
