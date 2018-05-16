@@ -10,14 +10,8 @@ query EventList {
     edges {
       node {
         id
-        performers {
-          edges {
-            node {
-              images
-              name
-            }
-          }
-        }
+        name
+        image
       }
     }
   }
@@ -51,7 +45,7 @@ class EventList extends Component {
                   !this.props.data.loading && this.props.data.events.edges.map(({ node: event }) => {
                     return (
                       <tr>
-                        <td><img src={event.performers.edges[0].node.images[0]} style={{ maxHeight: '50px' }} /></td>
+                        <td><img src={event.image} style={{ maxHeight: '50px' }} alt={event.name} /></td>
                         <td>{event.performers.edges.map(({ node: performer }) => performer.name).join('\n')}</td>
                         <td>
                           <ButtonGroup>

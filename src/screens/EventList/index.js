@@ -22,9 +22,12 @@ const EVENT_LIST = gql`
     rating: contentRating
     name
     description
+    inventory {
+      sold
+      capacity
+    }
     locationId
     externalIds
-    performerIds
     start(format: "M/D h:mma")
     url
     location {

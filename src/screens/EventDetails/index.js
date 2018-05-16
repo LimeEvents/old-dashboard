@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
-import { Alert, Container, Row, Col, Button, Form, FormGroup, Label, Input, FormText } from 'reactstrap'
-
+import PropTypes from 'prop-types'
+import { Alert, Container, Row, Col, Button } from 'reactstrap'
+import { Link } from 'react-router-dom'
 import { graphql } from 'react-apollo'
 import { compose, withProps } from 'recompose'
 import gql from 'graphql-tag'
@@ -15,8 +16,8 @@ class EventDetails extends Component {
       <Container>
         <Row>
           <Col sm={2} className='d-flex flex-column align-items-center'>
-            <img src={`${this.props.data.event.image}?w=50&h=50&fit=crop&crop=faces,center`} style={{ width: '100%', height: '100%' }} />
-
+            <img src={this.props.data.event.image} style={{ width: '100%' }} alt={this.props.data.event.name}/>
+            <Button block tag={Link} to={`/events/${this.props.data.event.id}/edit`}>Edit Event</Button>
           </Col>
           <Col>
             <h1>{this.props.data.event.name} <small>{this.props.data.event.start}</small></h1>
@@ -41,7 +42,7 @@ const EVENT_DETAILS = gql`
   query EventDetails($id: ID!) {
     event(id: $id) {
       id
-      image
+      image(size: 160)
       price
       caption
       description
@@ -51,10 +52,23 @@ const EVENT_DETAILS = gql`
   }
 `
 
+EventDetails.propTypes = {
+  data: PropTypes.shape({
+    event: PropTypes.shape({
+      id: PropTypes.string,
+      image: PropTypes.string,
+      name: PropTypes.string,
+      start: PropTypes.string,
+      caption: PropTypes.string,
+      price: PropTypes.number,
+      description: PropTypes.string
+    })
+  })
+}
+
 export default compose(
   graphql(EVENT_DETAILS, {
     options: (props) => {
-      console.log('props', props)
       return {
         variables: {
           id: props.match.params.eventId

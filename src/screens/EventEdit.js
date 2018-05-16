@@ -1,12 +1,17 @@
+import uuid from 'uuid/v4'
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 import { graphql } from 'react-apollo'
 import gql from 'graphql-tag'
-import { Container, Row, Col, FormGroup, Label, Input } from 'reactstrap'
+import { compose, withHandlers } from 'recompose'
+import { Button, Container, Row, Col, FormGroup, Label, Input } from 'reactstrap'
+import uploadcare from 'uploadcare-widget'
+import Datepicker from '../components/DatetimePicker'
+import CurrencyInput from '../components/CurrencyInput'
 
-const query = gql`
-query EventEdit($id: ID!) {
-  event(id: $id) {
+const EventEditFragment = gql`
+  fragment EventEditFragment on Event {
+    id
     price
     start
     notes
@@ -15,12 +20,17 @@ query EventEdit($id: ID!) {
     caption
     description
     locationId
-    performerIds
     contentRating
     minimumAge
     video
     caption
     description
+  }
+`
+const query = gql`
+query EventEdit($id: ID!) {
+  event(id: $id) {
+    ...EventEditFragment
   }
   locations {
     edges {
@@ -30,19 +40,20 @@ query EventEdit($id: ID!) {
       }
     }
   }
-  performers {
-    edges {
-      node {
-        id
-        name
-        images
-        videos
-        caption
-        description
+}
+${EventEditFragment}
+`
+
+const mutation = gql`
+  mutation EditEvent ($event: UpdateEventInput!) {
+    updateEvent(input: $event) {
+      clientMutationId
+      event {
+        ...EventEditFragment
       }
     }
   }
-}
+  ${EventEditFragment}
 `
 
 class EventEdit extends Component {
@@ -59,73 +70,41 @@ class EventEdit extends Component {
       notes: [],
       start: null,
       locationId: null,
-      performerIds: [],
       contentRating: null,
       minimumAge: null
     }
 
     this.onChange = this.onChange.bind(this)
-    this.onPerformerChange = this.onPerformerChange.bind(this)
   }
   onChange (field) {
     return (e) => this.setState({
-      [field]: e.target.value
+      [field]: typeof e === 'object' ? e.target.value : e
     })
   }
   componentWillReceiveProps (props, next) {
-    console.log('new props', props, next)
     this.setState({
       ...props.data.event
     })
   }
-  onPerformerChange (e) {
-    const performerId = e.target.value
-    const performer = this.props.data.performers.edges.map(({ node }) => node).find(({ id }) => performerId === id)
-    console.log(performer, performerId)
-    const update = { performerIds: this.state.performerIds.concat(performer.id) }
-    if (!this.state.name) update.name = performer.name
-    if (!this.state.image) update.image = performer.images[0]
-    if (!this.state.video) update.video = performer.videos[0]
-    if (!this.state.caption) update.caption = performer.caption
-    if (!this.state.description) update.description = performer.description
-    console.log('updating', update)
-    this.setState(update)
+  componentDidMount () {
+    var singleWidget = uploadcare.SingleWidget('[role=uploadcare-uploader]')
+    singleWidget.onUploadComplete((event) => {
+      this.setState({
+        image: event.cdnUrl.replace(/-\/resize\/\d+x\d*\//, '')
+      })
+    })
   }
+
+  get imageUrl () {
+    const url = this.state.image
+    if (!url) return url
+    if (url.startsWith('https://wiseguys')) return `${url}?w=150&h=150&fit=crop&crop=faces,center`
+    return `${url}-/resize/150x/`
+  }
+
   render () {
     return (
       <Container>
-        <Row>
-          <Col>
-            <FormGroup>
-              <Label for='locationId'>Location</Label>
-              <Input type='select' name='locationId' onChange={this.onChange('locationId')} value={this.state.locationId}>
-                <option>-- Select Location --</option>
-                {
-                  !this.props.data.loading && this.props.data.locations && this.props.data.locations.edges.map(({ node: location }) => {
-                    return (
-                      <option key={location.id} value={location.id}>{location.name}</option>
-                    )
-                  })
-                }
-              </Input>
-            </FormGroup>
-          </Col>
-          <Col>
-            <FormGroup>
-              <Label for='performerIds'>Performer</Label>
-              <Input type='select' name='performerId' onChange={this.onPerformerChange} value={this.state.performerId}>
-                <option>-- Select Performer --</option>
-                {
-                  !this.props.data.loading && this.props.data.performers && this.props.data.performers.edges.map(({ node: performer }) => {
-                    return (
-                      <option key={performer.id} value={performer.id}>{performer.name}</option>
-                    )
-                  })
-                }
-              </Input>
-            </FormGroup>
-          </Col>
-        </Row>
         <Row>
           <Col>
             <FormGroup>
@@ -135,20 +114,29 @@ class EventEdit extends Component {
           </Col>
         </Row>
         <Row>
-          <Col>
+          <Col sm={4}>
             <FormGroup>
-              <Label for='image'>Image</Label>
-              <Input type='text' name='image' onChange={this.onChange('image')} value={this.state.image} />
+              <Label>Image</Label>
+              <div className='d-flex flex-column align-items-center' style={{ backgroundColor: '#d0d0d0' }}>
+                { this.state.image && <img src={this.state.image} style={{ width: '150px', height: '150px' }} alt={this.state.name} /> }
+                <input type='hidden' role='uploadcare-uploader' name='content' data-crop='480x480 minimum' data-public-key='37a833de3eaa8798b364' data-images-only />
+              </div>
             </FormGroup>
-          </Col>
-          <Col>
             <FormGroup>
               <Label for='video'>Video</Label>
-              <Input type='text' name='video' onChange={this.onChange('video')} value={this.state.video} />
+              <Input
+                type='text'
+                name='video'
+                onChange={(e) => {
+                  const results = e.target.value.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})/i)
+                  if (!results) this.onChange('video')(e)
+                  else this.onChange('video')(`https://www.youtube.com/embed/${results[1]}`)
+                }}
+                value={this.state.video}
+              />
+              { this.state.video && <iframe title='YouTube video' style={{ width: '100%', height: '200px' }} src={this.state.video} frameBorder='0' allow='autoplay; encrypted-media' allowFullScreen /> }
             </FormGroup>
           </Col>
-        </Row>
-        <Row>
           <Col>
             <FormGroup>
               <Label for='caption'>Caption</Label>
@@ -158,26 +146,59 @@ class EventEdit extends Component {
               <Label for='description'>Description</Label>
               <Input type='textarea' rows={5} name='description' onChange={this.onChange('description')} value={this.state.description} />
             </FormGroup>
-            <FormGroup>
-              <Label for='price'>Price</Label>
-              <Input type='text' name='price' onChange={this.onChange('price')} value={this.state.price} />
-            </FormGroup>
-            <FormGroup>
-              <Label for='notes'>Notes</Label>
-              <Input type='text' name='notes' onChange={this.onChange('notes')} value={this.state.notes} />
-            </FormGroup>
-            <FormGroup>
-              <Label for='start'>Start</Label>
-              <Input type='date' name='start' onChange={this.onChange('start')} value={this.state.start} />
-            </FormGroup>
-            <FormGroup>
-              <Label for='contentRating'>Age Range</Label>
-              <Input type='text' name='contentRating' onChange={this.onChange('contentRating')} value={this.state.contentRating} />
-            </FormGroup>
-            <FormGroup>
-              <Label for='minimumAge'>Minimum Age</Label>
-              <Input type='text' name='minimumAge' onChange={this.onChange('minimumAge')} value={this.state.minimumAge} />
-            </FormGroup>
+            <Row>
+              <Col>
+                <FormGroup>
+                  <Label for='price'>Price</Label>
+                  <CurrencyInput type='text' name='price' onChange={this.onChange('price')} value={this.state.price} />
+                </FormGroup>
+              </Col>
+              <Col>
+                <FormGroup>
+                  <Label for='contentRating'>Age Range</Label>
+                  <Input type='select' name='contentRating' onChange={this.onChange('contentRating')} value={this.state.contentRating}>
+                    <option value='G'>G</option>
+                    <option value='PG'>PG</option>
+                    <option value='PG13'>PG-13</option>
+                    <option value='R'>R</option>
+                  </Input>
+                </FormGroup>
+              </Col>
+              <Col>
+                <FormGroup>
+                  <Label for='minimumAge'>Minimum Age</Label>
+                  <Input type='text' name='minimumAge' onChange={this.onChange('minimumAge')} value={this.state.minimumAge} />
+                </FormGroup>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <FormGroup>
+                  <Label for='locationId'>Location</Label>
+                  <Input disabled={!!this.state.id} type='select' name='locationId' onChange={this.onChange('locationId')} value={this.state.locationId}>
+                    <option>-- Select Location --</option>
+                    {
+                      !this.props.data.loading && this.props.data.locations && this.props.data.locations.edges.map(({ node: location }) => {
+                        return (
+                          <option key={location.id} value={location.id}>{location.name}</option>
+                        )
+                      })
+                    }
+                  </Input>
+                </FormGroup>
+              </Col>
+              <Col>
+                <FormGroup>
+                  <Label for='start'>Start</Label>
+                  <Datepicker readonly={!!this.state.id} name='start' onChange={this.onChange('start')} value={this.state.start} />
+                </FormGroup>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+        <Row>
+          <Col className='d-flex justify-content-end'>
+            <Button onClick={() => this.props.updateEvent(this.state)}>Save event</Button>
           </Col>
         </Row>
       </Container>
@@ -186,15 +207,39 @@ class EventEdit extends Component {
 }
 
 EventEdit.propTypes = {
-  data: PropTypes.object
+  data: PropTypes.object,
+  updateEvent: PropTypes.func.isRequired
 }
 
-export default graphql(query, {
-  options (props) {
-    return {
-      variables: {
-        id: props.match.params.eventId
+export default compose(
+  graphql(mutation),
+  withHandlers({
+    updateEvent: ({ mutate }) => {
+      return event => {
+        return mutate({ variables: { event: {
+          clientMutationId: uuid(),
+          id: event.id,
+          name: event.name,
+          caption: event.caption,
+          description: event.description,
+          slug: event.slug,
+          image: event.image,
+          video: event.video,
+          acceptDiscounts: event.acceptDiscounts,
+          price: event.price,
+          contentRating: event.contentRating,
+          minimumAge: event.minimumAge
+        } } })
       }
     }
-  }
-})(EventEdit)
+  }),
+  graphql(query, {
+    options (props) {
+      return {
+        variables: {
+          id: props.match.params.eventId
+        }
+      }
+    }
+  })
+)(EventEdit)

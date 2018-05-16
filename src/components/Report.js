@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import { Alert,
+import {
   Button,
   ButtonGroup,
   Container,
@@ -22,23 +22,20 @@ import { withRouter } from 'react-router-dom'
 import Currency from '../components/Currency'
 import { compose } from 'recompose'
 
+import { withLoading } from '../components/Loading'
+import { withError } from '../components/Error'
+import ReportCard from './ReportCard'
+
 // import reassignOrder from '../queries/reassignOrder'
-import Errors from '../components/Errors'
 
 const query = gql`
-  query Report($filter: OrderFilter, $performerId: ID, $eventId: ID, $locationId: ID) {
+  query Report($filter: OrderFilter, $eventId: ID, $locationId: ID) {
     events {
       edges {
         node {
           id
+          name
           inventory { capacity }
-          performers {
-            edges {
-              node {
-                name
-              }
-            }
-          }
         }
       }
     }
@@ -50,11 +47,11 @@ const query = gql`
         }
       }
     }
-    ticketsSold: orderMetric(filter: { performerId: $performerId, locationId: $locationId, eventId: $eventId, aggregate: tickets }) { value }
-    gross: orderMetric(filter: { performerId: $performerId, locationId: $locationId, eventId: $eventId, aggregate: amountPaid }) { value }
-    taxes: orderMetric(filter: { performerId: $performerId, locationId: $locationId, eventId: $eventId, aggregate: salesTax }) { value }
-    refunded: orderMetric(filter: { performerId: $performerId, locationId: $locationId, eventId: $eventId, aggregate: amountRefunded }) { value }
-    fees: orderMetric(filter: { performerId: $performerId, locationId: $locationId, eventId: $eventId, aggregate: locationFee }) { value }
+    ticketsSold: orderMetric(filter: { locationId: $locationId, eventId: $eventId, aggregate: tickets }) { value }
+    gross: orderMetric(filter: { locationId: $locationId, eventId: $eventId, aggregate: amountPaid }) { value }
+    taxes: orderMetric(filter: { locationId: $locationId, eventId: $eventId, aggregate: salesTax }) { value }
+    refunded: orderMetric(filter: { locationId: $locationId, eventId: $eventId, aggregate: amountRefunded }) { value }
+    fees: orderMetric(filter: { locationId: $locationId, eventId: $eventId, aggregate: locationFee }) { value }
     orders(filter: $filter) {
       edges {
         node {
@@ -69,14 +66,8 @@ const query = gql`
           created
           event {
             id
+            name
             start
-            performers {
-              edges {
-                node {
-                  name
-                }
-              }
-            }
           }
         }
       }
@@ -107,7 +98,7 @@ class Report extends Component {
     this.setState({
       eventId: value
     }, () => {
-      this.props.history.push(`/events/${value}/reporting`)
+      this.props.history.push(`/events/${value}`)
     })
   }
   toggle (modalKey, state) {
@@ -120,26 +111,12 @@ class Report extends Component {
   }
   onLocationChange (e) {
     const value = e.target.value
-    this.props.history.push(`/locations/${value}/reporting`)
+    this.props.history.push(`/locations/${value}`)
     this.setState({
       locationId: value
     })
   }
   render () {
-    if (this.props.data.error) {
-      return (
-        <Container>
-          <Row>
-            <Col>
-              <Errors errors={[this.props.data.error]} />
-            </Col>
-          </Row>
-        </Container>
-      )
-    }
-    if (this.props.data.loading) {
-      return <div>Loading...</div>
-    }
     return (
       <Container>
         <Row>
@@ -148,13 +125,13 @@ class Report extends Component {
               <option>-- Select Event --</option>
               {
                 !this.props.data.loading && this.props.data.events.edges.map(({ node: event }) => {
-                  return <option value={event.id} selected={this.state.eventId === event.id}>{ event.performers.edges.map(({ node: performer }) => performer.name).join(', ') }</option>
+                  return <option value={event.id} selected={this.state.eventId === event.id}>{ event.name }</option>
                 })
               }
             </Input> }
           </Col>
           <Col>
-            { !this.props.locationId && <Input type='select' onChange={this.onLocationChange} value={this.state.locationId}>
+            { !this.props.eventId && <Input type='select' onChange={this.onLocationChange} value={this.state.locationId}>
               <option>-- Select Location --</option>
               {
                 !this.props.data.loading && this.props.data.locations.edges.map(({ node: location }) => {
@@ -165,50 +142,41 @@ class Report extends Component {
           </Col>
         </Row>
         { !this.props.data.loading && <Row style={{ marginTop: '30px' }}>
-          <Col style={styles.card}>
-            <Alert color='primary'>
-              Tickets<br />
-              { this.props.data.ticketsSold.value }
-            </Alert>
+          <Col>
+            <ReportCard color='primary' primary='Tickets' children={this.props.data.ticketsSold.value} />
           </Col>
-          <Col style={styles.card}>
-            <Alert color='success' outline>
-              Gross<br />
+          <Col>
+            <ReportCard color='success' primary='Gross'>
               <Currency value={this.props.data.gross.value} />
-            </Alert>
+            </ReportCard>
           </Col>
-          <Col style={styles.card}>
-            <Alert color='secondary' outline>
-              Taxes<br />
+          <Col>
+            <ReportCard color='secondary' primary='Taxes'>
               <Currency value={-this.props.data.taxes.value} />
-            </Alert>
+            </ReportCard>
           </Col>
-          <Col style={styles.card}>
-            <Alert color='danger' outline>
-              Refunded<br />
+          <Col>
+            <ReportCard color='danger' primary='Refunded'>
               <Currency value={-this.props.data.refunded.value} />
-            </Alert>
+            </ReportCard>
           </Col>
-          <Col style={styles.card}>
-            <Alert color='warning' outline>
-              Fees<br />
+          <Col>
+            <ReportCard color='warning' primary='Fees'>
               <Currency value={-this.props.data.fees.value} />
-            </Alert>
+            </ReportCard>
           </Col>
-          <Col style={styles.card}>
-            <Alert color='success'>
-              Net<br />
+          <Col>
+            <ReportCard color='success' primary='Net'>
               <Currency value={this.props.data.gross.value - this.props.data.fees.value - this.props.data.taxes.value} />
-            </Alert>
+            </ReportCard>
           </Col>
         </Row> }
         <Row>
           <Col>
-            { !this.props.data.loading && <Table>
+            { !this.props.data.loading && <Table responsive striped>
               <thead>
                 <tr>
-                  <th>Event</th>
-                  <th>Willcall</th>
+                  { !this.props.eventId && <th>Event</th> }
                   <th>Tickets</th>
                   <th style={{ textAlign: 'right' }}>Gross</th>
                   <th style={{ textAlign: 'right' }}>Taxes</th>
@@ -223,13 +191,12 @@ class Report extends Component {
                   this.props.data.orders.edges.map(({ node: order }) => {
                     return (
                       <tr key={order.id}>
-                        <td className='d-flex flex-column align-items-center'>
-                          <Button size='sm' outline onClick={this.go(`/events/${order.event.id}`)}>
-                            { order.event.performers.edges[0].node.name }
+                        { !this.props.eventId && <td className='d-flex flex-column align-items-center'>
+                          <Button block size='sm' outline onClick={this.go(`/events/${order.event.id}`)}>
+                            { order.event.name }
                             <div style={{ fontSize: '10px' }}>{ formatDate(order.event.start) }</div>
                           </Button>
-                        </td>
-                        <td>{ order.willcall.slice(0, 2).join(', ') }</td>
+                        </td> }
                         <td>{ order.tickets }</td>
                         <td style={{ textAlign: 'right' }}><Currency value={order.amountPaid} flat /></td>
                         <td style={{ textAlign: 'right' }}><Currency value={-order.salesTax} flat /></td>
@@ -251,9 +218,7 @@ class Report extends Component {
               </tbody>
               <tfoot style={{ fontWeight: 'bold' }}>
                 <tr>
-                  <td colSpan={2}>
-                    <h4>Totals:</h4>
-                  </td>
+                  { !this.props.eventId && <td><h4>Totals:</h4></td> }
                   <td>{ this.props.data.ticketsSold.value }</td>
                   <td style={{ textAlign: 'right' }}><Currency value={this.props.data.gross.value} flat /></td>
                   <td style={{ textAlign: 'right' }}><Currency value={-this.props.data.taxes.value} flat /></td>
@@ -262,7 +227,7 @@ class Report extends Component {
                   <td style={{ textAlign: 'right' }}><Currency value={this.props.data.gross.value - this.props.data.fees.value - this.props.data.taxes.value} flat /></td>
                   <td className='d-flex flex-column'>
                     <div style={{ marginBottom: '10px' }}><Button block color='success' outline size='lg'>Transfer All</Button></div>
-                    <div><Button block color={this.props.data.refunded ? 'default' : 'danger'} size='lg' outline>Refund All</Button></div>
+                    <div><Button block color='danger' size='lg' outline>Refund All</Button></div>
                   </td>
                 </tr>
               </tfoot>
@@ -307,15 +272,9 @@ class Report extends Component {
 
 Report.propTypes = {
   data: PropTypes.object,
-  match: PropTypes.object,
+  eventId: PropTypes.string,
+  locationId: PropTypes.string,
   history: PropTypes.object
-}
-
-const styles = {
-  card: {
-    fontSize: '24px',
-    textAlign: 'center'
-  }
 }
 
 export default compose(
@@ -335,5 +294,7 @@ export default compose(
       }
     }
   } }),
+  withLoading(),
+  withError(),
   withRouter
 )(Report)
