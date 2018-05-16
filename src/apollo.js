@@ -1,5 +1,5 @@
 import ApolloClient from 'apollo-boost'
 
 export default new ApolloClient({
-  uri: '/graphql'
+  uri: 'https://lime-stage.herokuapp.com/graphql'
 })
